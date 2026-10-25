@@ -39,6 +39,7 @@ jobs:
           repository: 'howtosecu/OmniNexus'
           ref: 'main'
           token: ${{ secrets.OMNINEXUS_READ_TOKEN }}
+          persist-credentials: false
           sparse-checkout: |
             go.mod
             go.sum
