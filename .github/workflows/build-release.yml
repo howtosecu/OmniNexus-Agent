@@ -1,0 +1,126 @@
+name: Build & Publish OmniNexus Agent (Air-Gapped)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release Tag Version (e.g. v1.1.0)'
+        required: true
+        default: 'v1.1.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build-agent-matrix:
+    name: Build Multi-OS Binaries
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: linux
+            arch: amd64
+            ext: ""
+          - os: linux
+            arch: arm64
+            ext: ""
+          - os: windows
+            arch: amd64
+            ext: ".exe"
+          - os: darwin
+            arch: arm64
+            ext: ""
+
+    steps:
+      # Step 1: Air-Gapped Sparse-Checkout (Chỉ lấy phần Whitelist của Agent, loại trừ 100% Hub, Web, Auth)
+      - name: Air-Gapped Whitelist Checkout from Private Core
+        uses: actions/checkout@v4
+        with:
+          repository: 'howtosecu/OmniNexus'
+          token: ${{ secrets.OMNINEXUS_READ_TOKEN }}
+          sparse-checkout: |
+            go.mod
+            go.sum
+            cmd/nexus-agent
+            cmd/nexusctl
+            internal/agent
+            internal/protocol
+            internal/identity
+            internal/terminal
+            internal/telemetry
+            internal/update
+            internal/config
+            internal/orchestrator/state.go
+          sparse-checkout-cone-mode: false
+
+      # Step 2: Cài đặt runtime Go
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+
+      # Step 3: Biên dịch tĩnh và tước bỏ toàn bộ debug table (-s -w)
+      - name: Compile Static Binaries (${{ matrix.os }}/${{ matrix.arch }})
+        env:
+          CGO_ENABLED: 0
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          mkdir -p dist
+          go build -ldflags="-s -w -X main.version=${{ github.event.inputs.version }}" \
+            -o dist/nexus-agent-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }} ./cmd/nexus-agent
+          go build -ldflags="-s -w -X main.version=${{ github.event.inputs.version }}" \
+            -o dist/nexusctl-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }} ./cmd/nexusctl
+
+      # Step 4: Đóng gói artifacts trung gian
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries-${{ matrix.os }}-${{ matrix.arch }}
+          path: dist/*
+
+  publish-github-release:
+    name: Publish GitHub Release & Checksums
+    needs: build-agent-matrix
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all compiled binaries
+        uses: actions/download-artifact@v4
+        with:
+          path: release-binaries
+          merge-multiple: true
+
+      # Step 5: Tự động tính SHA-256 Checksums
+      - name: Compute SHA-256 Checksums
+        run: |
+          cd release-binaries
+          sha256sum * > SHA256SUMS.txt
+          echo "### Release Checksums (SHA-256)" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat SHA256SUMS.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      # Step 6: Tạo Release chính thức trên GitHub
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.version }}
+          name: "OmniNexus Agent & CLI ${{ github.event.inputs.version }}"
+          body: |
+            ## ⚡ OmniNexus Endpoint Agent & CLI Release
+            
+            Multi-platform production binaries built with air-gapped security and zero runtime dependencies.
+            
+            ### Quick Install (Linux VPS):
+            ```bash
+            curl -sSL https://raw.githubusercontent.com/howtosecu/OmniNexus-Agent/main/scripts/install.sh | sudo bash -s -- --hub-endpoint=YOUR_HUB_HOST:9443
+            ```
+            
+            ### Quick Install (Windows Server & PC):
+            ```powershell
+            powershell -ExecutionPolicy Bypass -Command "iwr -useb https://raw.githubusercontent.com/howtosecu/OmniNexus-Agent/main/scripts/install.ps1 | iex"
+            ```
+          draft: false
+          prerelease: false
+          files: release-binaries/*
