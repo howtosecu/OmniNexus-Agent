@@ -37,6 +37,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 'howtosecu/OmniNexus'
+          ref: 'main'
           token: ${{ secrets.OMNINEXUS_READ_TOKEN }}
           sparse-checkout: |
             go.mod
