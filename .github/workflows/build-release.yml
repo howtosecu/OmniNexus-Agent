@@ -45,8 +45,10 @@ jobs:
             go.sum
             cmd/nexus-agent
             cmd/nexusctl
+            cmd/nexus-relay
             internal/agent
             internal/protocol
+            internal/relay
             internal/identity
             internal/terminal
             internal/telemetry
@@ -74,6 +76,8 @@ jobs:
             -o dist/nexus-agent-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }} ./cmd/nexus-agent
           go build -buildvcs=false -ldflags="-s -w -X main.version=${{ github.event.inputs.version }}" \
             -o dist/nexusctl-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }} ./cmd/nexusctl
+          go build -buildvcs=false -ldflags="-s -w -X main.version=${{ github.event.inputs.version }}" \
+            -o dist/nexus-relay-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }} ./cmd/nexus-relay
 
       # Step 4: Đóng gói artifacts trung gian
       - name: Upload Build Artifacts
