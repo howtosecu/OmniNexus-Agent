@@ -70,9 +70,9 @@ jobs:
           GOARCH: ${{ matrix.arch }}
         run: |
           mkdir -p dist
-          go build -ldflags="-s -w -X main.version=${{ github.event.inputs.version }}" \
+          go build -buildvcs=false -ldflags="-s -w -X main.version=${{ github.event.inputs.version }}" \
             -o dist/nexus-agent-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }} ./cmd/nexus-agent
-          go build -ldflags="-s -w -X main.version=${{ github.event.inputs.version }}" \
+          go build -buildvcs=false -ldflags="-s -w -X main.version=${{ github.event.inputs.version }}" \
             -o dist/nexusctl-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }} ./cmd/nexusctl
 
       # Step 4: Đóng gói artifacts trung gian
