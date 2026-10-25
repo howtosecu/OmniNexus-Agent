@@ -49,6 +49,7 @@ jobs:
             internal/agent
             internal/protocol
             internal/relay
+            internal/mesh
             internal/identity
             internal/terminal
             internal/telemetry
