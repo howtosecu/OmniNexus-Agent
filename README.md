@@ -32,8 +32,18 @@ All release binaries are static, standalone executables (`CGO_ENABLED=0`, zero e
 | **Linux** | ARM64 (aarch64) | `nexus-agent-linux-arm64` | AWS Graviton, Raspberry Pi 4/5, Oracle ARM |
 | **Windows** | AMD64 (x86_64) | `nexus-agent-windows-amd64.exe` | Windows Server 2019/2022, Windows 10/11 |
 | **macOS** | ARM64 | `nexus-agent-darwin-arm64` | Apple Silicon (M1/M2/M3/M4) |
+| **Relay Daemon** | Multi-OS | `nexus-relay-*` | Stateless Rendezvous TCP Relay for Personal Hub |
 
 Each release is accompanied by cryptographic `SHA256SUMS` to verify file integrity.
+
+---
+
+## 🌐 Personal Hub Connection Modes (v1.4.0)
+
+Endpoints can connect to a Personal Hub (e.g. your workstation/laptop behind NAT) via 3 dynamic modes:
+1. **Ingress Tunnel**: Connect via WebSocket over HTTPS (`-hub-ws wss://tunnel-url/api/v1/agent/ws`).
+2. **Rendezvous Relay**: Spliced via standalone `nexus-relay` running on any neutral VPS.
+3. **P2P WireGuard Mesh**: End-to-end encrypted wire-speed overlay network using Curve25519 (`100.64.0.0/24`).
 
 ---
 
